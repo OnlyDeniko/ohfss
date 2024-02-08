@@ -75,7 +75,7 @@ void ctranspose(const vector<complex<TYPE>>& A, vector<complex<TYPE>>& Res, int 
 	}
 }
 
-vector<int> OperatorGridIrregular(
+vector<pair<int, int>> OperatorGridIrregular(
 	TYPE w,
 	TYPE T1,
 	TYPE T2,
@@ -168,7 +168,16 @@ vector<int> OperatorGridIrregular(
 	for (int i = 0; i < arr1.size(); i++) {
 		arr.push_back((arr1[i] + 1) + (arr2[i] + 1) * 3);
 	}
-	return arr;
+	vector<pair<int, int>> freq = { {arr[0], 0} };
+	for (auto& i : arr) {
+		if (freq.back().first == i) {
+			freq.back().second += 1;
+		}
+		else {
+			freq.push_back({ i, 1 });
+		}
+	}
+	return freq;
 }
 
 map<string, TYPE> SimulateIrregular(
@@ -327,39 +336,23 @@ map<string, TYPE> SimulateIrregular(
 		linalg::getUMatrix(lIdentity, H01, tstep, h, L),
 		linalg::getUMatrix(lIdentity, H11, tstep, h, L)
 	};
-	
-	vector<int> PulseString = OperatorGridIrregular(
+	/*linalg::print_matrix("Hm1m1", L, L, Hm1m1, L);
+	linalg::print_matrix("H0m1", L, L, H0m1, L);
+	linalg::print_matrix("H1m1", L, L, H1m1, L);
+	linalg::print_matrix("Hm10", L, L, Hm10, L);
+	linalg::print_matrix("H00", L, L, H00, L);
+	linalg::print_matrix("H10", L, L, H10, L);
+	linalg::print_matrix("Hm11", L, L, Hm11, L);
+	linalg::print_matrix("H01", L, L, H01, L);
+	linalg::print_matrix("H11", L, L, H11, L);*/
+
+	vector<pair<int, int>> ComressedPulseString = OperatorGridIrregular(
 		tau, 2 * PI / wg1, 2 * PI / wg2, phi, waitq1, waitq2, str1, str2, tstep
-	);
+	); // {type, frequency}
+
 	vector<complex<TYPE>> U(L * L);
 	fillIdentity(U, L);
-	for (int i = 0; i < PulseString.size(); i++) {
-		auto& UPulse = operators[PulseString[i]];
-		U = linalg::matmul(UPulse, U, L, L, L, L, L, L);
-	}
-	
 	vector<complex<TYPE>> WF;
-	if (init == "00") {
-		WF = WF00;
-	}
-	else if (init == "01") {
-		WF = WF01;
-	}
-	else if (init == "10") {
-		WF = WF10;
-	}
-	else if (init == "11") {
-		WF = WF11;
-	}
-	else if (init == "20") {
-		WF = WF20;
-	}
-	else if (init == "02") {
-		WF = WF02;
-	}
-	mvMul(U, WF, tmp1);
-	swap(WF, tmp1);
-
 	auto getProbability = [&](const vector<complex<TYPE>>& eigVector) {
 		complex<TYPE> dot_product = 0;
 		for (int j = 0; j < L; ++j) {
@@ -367,6 +360,61 @@ map<string, TYPE> SimulateIrregular(
 		}
 		return norm(dot_product);
 	};
+
+	ofstream f00, f01, f10, f11, f02, f20;
+	f00.open("00.txt", std::ios::app);
+	f01.open("01.txt", std::ios::app);
+	f10.open("10.txt", std::ios::app);
+	f11.open("11.txt", std::ios::app);
+	f02.open("02.txt", std::ios::app);
+	f20.open("20.txt", std::ios::app);
+
+	map<pair<int, int>, vector<complex<TYPE>>> compress2matrix;
+	for (auto& i : ComressedPulseString) {
+		if (compress2matrix.find(i) == compress2matrix.end()) {
+			compress2matrix[i] = linalg::matpow(operators[i.first], i.second, L);
+		}
+	}
+
+	for (int i = 0; i < ComressedPulseString.size(); i++) {
+		auto& UPulse = compress2matrix[ComressedPulseString[i]];
+		U = linalg::matmul(UPulse, U, L, L, L, L, L, L);
+		if (i + 1 == ComressedPulseString.size()) {
+			if (init == "00") {
+				WF = WF00;
+			}
+			else if (init == "01") {
+				WF = WF01;
+			}
+			else if (init == "10") {
+				WF = WF10;
+			}
+			else if (init == "11") {
+				WF = WF11;
+			}
+			else if (init == "20") {
+				WF = WF20;
+			}
+			else if (init == "02") {
+				WF = WF02;
+			}
+			mvMul(U, WF, tmp1);
+			swap(WF, tmp1);
+
+			f00 << getProbability(WF00) << '\n';
+			f10 << getProbability(WF10) << '\n';
+			f01 << getProbability(WF01) << '\n';
+			f11 << getProbability(WF11) << '\n';
+			f02 << getProbability(WF02) << '\n';
+			f20 << getProbability(WF20) << '\n';
+		}
+	}
+	f00.close();
+	f10.close();
+	f01.close();
+	f11.close();
+	f02.close();
+	f20.close();
 
 	map<string, TYPE> probs = {
 		{"00", getProbability(WF00)},
@@ -430,7 +478,7 @@ int main() {
 	double time = omp_get_wtime();
 	int N = 3; // кол-во уровней кубита
 	TYPE val = 2 * PI * 1e9;
-	TYPE tstep = 5e-14; // time grid step
+	TYPE tstep = 1e-14; // time grid step
 	// main qubit frequencies
 	TYPE w1 = 5.0 * (2 * PI) * 1e9; // Частота внешнего управляющего поля
 	TYPE w2 = 5.2 * (2 * PI) * 1e9; // Частота внешнего управляющего поля
@@ -448,8 +496,8 @@ int main() {
 	TYPE Cc2 = 4e-16;
 
 	// pulse generation frequencies
-	TYPE wg1 = 25 * (2 * PI) * 1e9;
-	TYPE wg2 = 25 * (2 * PI) * 1e9;
+	TYPE wg1 = w2;
+	TYPE wg2 = w2;
 	TYPE tau = 4 * 1e-12; // Длительность импульса
 	TYPE phi = 0; // phase (number of grid steps paused on Q2)
 
@@ -457,17 +505,22 @@ int main() {
 	int waitq1 = 0;
 	int waitq2 = 0;
 
-	string str1 = "11-1-1-1110-1011-1-1-111-1-1-111-1-1110-1-1110-1-1110-1-111-10-1111-1-1110-1-1111-1-1111-1-1111-1-1011-10111-1-1011-1-1-111-1-1-111-10110-1-111-1-1-101-1-1-111-1-1-1110-1-11";
+	string str1;
+	for (int i = 0; i < 1000; i++) {
+		str1 += '1';
+	}
 	string str2;
 
 	string init = "00"; // initial condition
 	string operation = "h0"; // required operation (for fidelity calculation)
-
+	double start = omp_get_wtime();
 	auto res = SimulateIrregular(
 		N, w1, w2, mu1, mu2, g, Cq1, Cq2, Cc1, Cc2,
 		wg1, wg2, tau, phi, waitq1, waitq2,
 		str1, str2, tstep, init, operation
 	);
+	start = omp_get_wtime() - start;
+	cout << "TIME ELAPSED: " << start << '\n';
 	for (auto& i : res) {
 		cout << fixed << setprecision(20) << i.first << ' ' << i.second << '\n';
 	}
