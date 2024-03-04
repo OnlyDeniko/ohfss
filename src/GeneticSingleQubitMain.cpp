@@ -1,20 +1,12 @@
-#include <algorithm>
-#include <cmath>
-#include <chrono>
-#include <complex>
-#include <iostream>
-#include <functional>
-#include <fstream>
-#include <limits.h>
-#include <omp.h>
-#include <map>
-#include <vector>
 #include "GeneticAlgorithm.h"
-#include <numeric>
+#include "ArgsPreprocessor.h"
 
 using namespace std;
 
-void Genetic(int CellsNumber = 120, int MaxCells = 120,
+void Genetic(
+	int RegularLen = 30,
+	int CellsNumber = 120, 
+	int MaxCells = 120,
 	double w01Coeff = 3,
 	double w12Coeff = 0.25,
 	double wtCoeff = 25,
@@ -43,12 +35,9 @@ void Genetic(int CellsNumber = 120, int MaxCells = 120,
 	const double Theta = 0.001;
 	const double tstep = 5e-14;
 
-	const int NumberOfCycles = (MaxCells + CellsNumber - 1) / CellsNumber;
+	const int NumberOfCycles = 1;
 
-	Kernel kernel(tstep, w01, w12, wt, w, T);
-
-	/*auto Amps = kernel.CreateAmpThresholds(CellsNumber);
-	auto seq = kernel.CreateStartSCALLOP(CellsNumber, Amps[Amps.size() / 2], Type);*/
+	ConstantsDescriptor config(w01, w12, wt, w, T, tstep, Theta, NeededAngle, NumberOfCycles, AngleUpperBound, Type, RegularLen);
 
 	vector<vector<int>> seqs(2 * CellsNumber);
 	uniform_int_distribution<> dist(-1, 1);
@@ -60,60 +49,31 @@ void Genetic(int CellsNumber = 120, int MaxCells = 120,
 			j = dist(gen);
 		}
 	}
-
-	CalculationDescriptor desc(w01, w12, wt, w, T, tstep, Theta, NeededAngle, NumberOfCycles, AngleUpperBound, Type);
-	GeneticAlgorithm algo(seqs, CrossoverProbability, MutationProbability, MaxIter, desc);
+	GeneticHyperParameters hyperParams(CrossoverProbability, MutationProbability, MaxIter);
+	GeneticAlgorithm algo(seqs, config, hyperParams);
 	auto exec_time = algo.run();
 
-	string filename = "L=" + to_string(CellsNumber) + "_MaxL=" + to_string(MaxCells) + "_w01=" + to_string(w01Coeff) +
+	string filename = "RL=" + to_string(RegularLen) + "_L=" + to_string(CellsNumber) + "_w01=" + to_string(w01Coeff) +
 		"_w12=" + to_string(w12Coeff) + "_wt=" + to_string(wtCoeff) +
-		"_Angle=" + to_string(NeededAngle) + "_AngleUpperBound=" + to_string(AngleUpperBound) + ".txt";
+		"_Angle=" + to_string(NeededAngle) + ".txt";
 	ofstream fout;
 	fout.open(filename, std::ios::app);
 
 	fout << CellsNumber << '\t';
-	kernel.WriteSequence(fout, algo.getSequence(), '\t');
+	for (auto& i : algo.getSequence()) fout << i;
+	fout << '\t';
 	fout << algo.getNumberOfCycles() << '\t';
-	fout << fixed << setprecision(20) << NeededAngle << '\t';
-	fout << algo.getFidelity()  << ' ' << algo.getLeak() << '\t';
+	fout << algo.getBestIteration() << '\t';
+	fout << 1 - algo.getFidelity()  << ' ' << algo.getLeak() << '\t';
 	fout << '\t' << exec_time << '\n';
 	fout.close();
 }
 
-map<string, double> preproc_args(int argc, char** argv) {
-	map<string, double> mp = {
-	  {"len", 120},
-	  {"max_len", 120},
-	  {"w01", 3},
-	  {"w12", 0.25},
-	  {"wt", 25},
-	  {"angle", 0.024},
-	  {"module", 0.0001},
-	  {"mp", 0.8},
-	  {"cp", 0.8},
-	  {"iter", 500},
-	  {"type", 3}
-	};
-	for (int i = 1; i < argc; i += 2) {
-		string name = argv[i];
-		name = name.substr(2, string::npos);
-		double value;
-		if (name == "type") {
-			string val = argv[i + 1];
-			value = val == "bipolar" ? 3 : 2;
-		}
-		else {
-			value = atof(argv[i + 1]);
-		}
-		mp[name] = value;
-	}
-	return mp;
-}
-
 int main(int argc, char** argv) {
 	omp_set_num_threads(4);
-	auto mp = preproc_args(argc, argv);
+	auto mp = ArgsPreprocessor::run(argc, argv);
 	Genetic(
+		int(mp["regular_len"]),
 		int(mp["len"]),
 		int(mp["max_len"]),
 		mp["w01"],
