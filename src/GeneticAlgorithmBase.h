@@ -83,6 +83,7 @@ public:
 		bestIteration = hyperParams.maxIter;
 
 		for (int iteration = 0; iteration < hyperParams.maxIter; ++iteration) {
+			cout << iteration << endl;
 #pragma omp parallel for shared(newPopulation)
 			for (int i = 0; i < offSpringSize; ++i) {
 				auto parents = Tournament();
