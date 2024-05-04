@@ -4,6 +4,7 @@
 #include <complex>
 #include <numeric>
 #include <map>
+#include <set>
 #include <vector>
 #include "ConstantsDescriptor.h"
 #include "linalg.h"
@@ -22,7 +23,7 @@ private:
 		a1, a2, Identity, lIdentity, V1, V2, HQ1, HQ2, aa;
 	vector<complex<double>> tmp1, tmp2, tmp3, tmp4, tmp5;
 	vector<int> IndexEigValuesAndVectors;
-	vector<complex<double>> WF00, WF10, WF01, WF11, WF20, WF02;
+	vector<complex<double>> WF_init, WF00, WF10, WF01, WF11, WF20, WF02;
 	vector<complex<double>> H10, H01, H11, Hm10, H0m1, Hm11, H1m1, Hm1m1;
 	vector<complex<double>> EigVectorsL, EigVectorsR, EigValues;
 	vector<complex<double>> ltmp1, ltmp2, ltmp3, ltmp4, ltmp5, H00;
@@ -43,15 +44,54 @@ private:
 		const vector<int>& seq1,
 		const vector<int>& seq2
 	);
+
+	struct Spectrum {
+		vector<int> LevelsN;
+		vector<string> States;
+		vector<double> Energies;
+		vector<double> Probabilities;
+
+		Spectrum(
+			const vector<int>& _levels = {},
+			const vector<string> _states = {},
+			const vector<double>& _energies = {}
+		) : LevelsN(_levels), States(_states), Energies(_energies), Probabilities(_levels.size(), 0) {}
+
+		void _change_order(const vector<int>& order) {
+			vector<int> newLevels(LevelsN.size());
+			vector<string> newStates(States.size());
+			vector<double> newEnergies(Energies.size());
+			for (int i = 0; i < LevelsN.size(); ++i) {
+				newLevels[i] = LevelsN[order[i]];
+				newStates[i] = States[order[i]];
+				newEnergies[i] = Energies[order[i]];
+			}
+			LevelsN = move(newLevels);
+			States = move(newStates);
+			Energies = move(newEnergies);
+		}
+
+		double GetProbability(const string& state) {
+			for (int i = 0; i < States.size(); ++i) {
+				if (States[i] == state) return Probabilities[i];
+			}
+			assert(0);
+		}
+	};
+	TwoQubitsKernel::Spectrum spectrum;
+	TwoQubitsKernel::Spectrum GetSpectrum(
+		vector<complex<double>>& a1,
+		vector<complex<double>>& a2
+	);
 public:
 	TwoQubitsKernel(const TwoQubitsConstantsDescriptor& _config);
 
 	struct FidelityResult {
 		double fidelity;
-		map<string, double> probs;
+		TwoQubitsKernel::Spectrum spec;
 
-		FidelityResult(double _fidelity = 0, map<string, double> _probs = {}) :
-			fidelity(_fidelity), probs(_probs) {}
+		FidelityResult(double _fidelity, Spectrum _spec) :
+			fidelity(_fidelity), spec(_spec) {}
 	};
 
 	FidelityResult Fidelity(const vector<int>& sequence);

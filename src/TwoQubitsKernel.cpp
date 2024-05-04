@@ -185,6 +185,85 @@ vector<pair<int, int>> TwoQubitsKernel::_combine_sequences(const vector<int>& se
 	return freq;
 }
 
+TwoQubitsKernel::Spectrum TwoQubitsKernel::GetSpectrum(vector<complex<double>>& a1, vector<complex<double>>& a2){
+	double E00_est, E10_est, E01_est, E11_est, E20_est, E02_est, E21_est, E12_est, E22_est;
+	vector<double> Energies;
+	vector<string> States;
+	if (config.N == 2){
+		E00_est = 0;
+		E10_est = config.w1 / (2 * PI);
+		E01_est = config.w2 / (2 * PI);
+		E11_est = (config.w1 + config.w2) / (2 * PI);
+		Energies = {E00_est, E10_est, E01_est, E11_est};
+		States = {"00", "10", "01", "11"};
+	} else if (config.N == 3){
+		E00_est = 0;
+		E10_est = config.w1 / (2 * PI);
+		E01_est = config.w2 / (2 * PI);
+		E11_est = (config.w1 + config.w2) / (2 * PI);
+		E20_est = (2 * config.w1 - config.mu1) / (2 * PI);
+		E02_est = (2 * config.w2 - config.mu2) / (2 * PI);
+		E21_est = (2 * config.w1 + config.w2 - config.mu1) / (2 * PI);
+		E12_est = (2 * config.w2 + config.w1 - config.mu2) / (2 * PI);
+		E22_est = (2 * config.w1 + 2 * config.w2 - config.mu1 - config.mu2) / (2 * PI);
+		Energies = {E00_est, E10_est, E01_est, E11_est, E20_est, E02_est, E21_est, E12_est, E22_est};
+		States = {"00", "10", "01", "11", "20", "02", "21", "12", "22"};
+	} else {
+		assert(0);
+	}
+
+	// now to the hamiltonians
+	aa = linalg::matmul(a1, a2, config.N, config.N, config.N, config.N, config.N, config.N);
+	// linalg::print_matrix("aa", config.N, config.N, aa, config.N);
+	vsMul(aa, h * config.w1, tmp1);
+	vsMul(aa, h * config.w2, tmp3);
+
+	matsub(aa, Identity, tmp5);
+	tmp4 = linalg::matmul(aa, tmp5, config.N, config.N, config.N, config.N, config.N, config.N);
+	vsMul(tmp4, h * config.mu1 / 2, tmp2);
+	matsub(tmp1, tmp2, HQ1);
+	vsMul(tmp4, h * config.mu2 / 2, tmp2);
+	matsub(tmp3, tmp2, HQ2);
+
+	matadd(a1, a2, tmp2);
+	kMul(tmp2, tmp2, ltmp1, config.N);
+	vsMul(ltmp1, h * config.g, Hint);
+
+	// no field hamiltonian
+	kMul(HQ1, Identity, ltmp2, config.N);
+	kMul(Identity, HQ2, ltmp3, config.N);
+	matadd(ltmp2, ltmp3, ltmp1);
+	matadd(ltmp1, Hint, H00);
+
+	vector<double> EigVals(L);
+	for (int i = 0; i < L; ++i) {
+		EigVals[i] = H00[i * L + i].real() / (2 * PI * h);
+	}
+	vector<int> LevelsN(L);
+	vector<double> helper(L);
+	for (int i = 0; i < L; ++i) {
+		for (int j = 0; j < L; ++j) {
+			helper[j] = abs(EigVals[j] - Energies[i]);
+		}
+		int min_index = min_element(helper.begin(), helper.end()) - helper.begin();
+		LevelsN[i] = min_index;
+	}
+	if (set<int>(LevelsN.begin(), LevelsN.end()).size() != LevelsN.size()) {
+		cout << "Degenerate levels detected!\n";
+	}
+	for (int i = 0; i < Energies.size(); ++i) {
+		Energies[i] /= 1e9;
+	}
+	vector<int> order(L);
+	iota(order.begin(), order.end(), 0);
+	sort(order.begin(), order.end(), [&](int lb, int rb) {
+		return Energies[lb] < Energies[rb];
+	});
+	TwoQubitsKernel::Spectrum spec(LevelsN, States, Energies);
+	spec._change_order(order);
+	return spec;
+}
+
 TwoQubitsKernel::TwoQubitsKernel(const TwoQubitsConstantsDescriptor& _config) :
 	config(_config),
 	L(_config.N* _config.N),
@@ -210,7 +289,8 @@ TwoQubitsKernel::TwoQubitsKernel(const TwoQubitsConstantsDescriptor& _config) :
 	ltmp1(L* L), ltmp2(L* L),
 	ltmp3(L* L), ltmp4(L* L), ltmp5(L* L),
 	H00(L* L),
-	Hint(L* L) {
+	Hint(L* L),
+	WF_init(_config.N * _config.N) {
 
 	fill(a1.begin(), a1.end(), zero);
 	fill(a2.begin(), a2.end(), zero);
@@ -221,8 +301,15 @@ TwoQubitsKernel::TwoQubitsKernel(const TwoQubitsConstantsDescriptor& _config) :
 	}
 	fillIdentity(Identity, config.N);
 	fillIdentity(lIdentity, config.N * config.N);
-	aa = linalg::matmul(a1, a2, config.N, config.N, config.N, config.N, config.N, config.N);
 
+	spectrum = GetSpectrum(a1, a2);
+	fill(WF_init.begin(), WF_init.end(), zero);
+	int _match_index = 0;
+	for (int i = 1; i < L; ++i) {
+		if (spectrum.States[i] == config.init) _match_index = i;
+	}
+	WF_init[spectrum.LevelsN[_match_index]] = 1;
+	
 	// field operator
 	double V0 = F0 / config.tau; // Voltage
 	double Amp1 = config.Cc1 * V0 * sqrt(h * config.w1 / (2 * config.Cq1)); //first generator amplitude
@@ -231,57 +318,6 @@ TwoQubitsKernel::TwoQubitsKernel(const TwoQubitsConstantsDescriptor& _config) :
 	matsub(a2, a1, tmp1);
 	vsMul(tmp1, complex<double>{0, Amp1}, V1);
 	vsMul(tmp1, complex<double>{0, Amp2}, V2);
-
-
-	// now to the hamiltonians
-	int L = config.N * config.N;
-	vsMul(aa, h * config.w1, tmp1);
-	vsMul(aa, h * config.w2, tmp3);
-
-	matsub(aa, Identity, tmp5);
-	tmp4 = linalg::matmul(aa, tmp5, config.N, config.N, config.N, config.N, config.N, config.N);
-	vsMul(tmp4, h * config.mu1 / 2, tmp2);
-	matsub(tmp1, tmp2, HQ1);
-	vsMul(tmp4, h * config.mu2 / 2, tmp2);
-	matsub(tmp3, tmp2, HQ2);
-
-	matadd(a1, a2, tmp2);
-	kMul(tmp2, tmp2, ltmp1, config.N);
-	vsMul(ltmp1, h * config.g, Hint);
-
-
-	// no field hamiltonian
-	kMul(HQ1, Identity, ltmp2, config.N);
-	kMul(Identity, HQ2, ltmp3, config.N);
-	matadd(ltmp2, ltmp3, ltmp1);
-	matadd(ltmp1, Hint, H00);
-
-	// eigens
-	linalg::eig(H00, EigVectorsL, EigVectorsR, EigValues, L);
-
-	iota(IndexEigValuesAndVectors.begin(), IndexEigValuesAndVectors.end(), 0);
-	sort(IndexEigValuesAndVectors.begin(), IndexEigValuesAndVectors.end(), [&](int el1, int el2) {
-		return EigValues[el1].real() < EigValues[el2].real();
-	});
-	auto getEigVector = [&](int index) {
-		vector<complex<double>> vec(L);
-		for (int i = 0; i < L; ++i) {
-			vec[i] = EigVectorsR[i * L + IndexEigValuesAndVectors[index]];
-		}
-		return vec;
-	};
-
-	WF00 = getEigVector(0);
-	WF10 = getEigVector(1);
-	WF01 = getEigVector(2);
-	if (config.N == 2) {
-		WF11 = getEigVector(3);
-	}
-	else if (config.N == 3) {
-		WF20 = getEigVector(3);
-		WF02 = getEigVector(4);
-		WF11 = getEigVector(5);
-	}
 
 	kMul(V1, Identity, ltmp1, config.N);
 	kMul(Identity, V2, ltmp2, config.N);
@@ -320,7 +356,7 @@ TwoQubitsKernel::FidelityResult TwoQubitsKernel::Fidelity(const vector<int>& seq
 
 	vector<complex<double>> U(L * L);
 	fillIdentity(U, L);
-	vector<complex<double>> WF, updatedWF(L);
+	vector<complex<double>> WF(L), updatedWF(L);
 	auto getProbability = [&](const vector<complex<double>>& eigVector) {
 		complex<double> dot_product = 0;
 		for (int j = 0; j < L; ++j) {	
@@ -339,85 +375,46 @@ TwoQubitsKernel::FidelityResult TwoQubitsKernel::Fidelity(const vector<int>& seq
 	for (int i = 0; i < ComressedPulseString.size(); i++) {
 		auto UPulse = compress2matrix[ComressedPulseString[i]];
 		U = linalg::matmul(UPulse, U, L, L, L, L, L, L);
-		if (i + 1 == ComressedPulseString.size()) {
-			if (config.init == "00") {
-				WF = WF00;
-			}
-			else if (config.init == "01") {
-				WF = WF01;
-			}
-			else if (config.init == "10") {
-				WF = WF10;
-			}
-			else if (config.init == "11") {
-				WF = WF11;
-			}
-			else if (config.init == "20") {
-				WF = WF20;
-			}
-			else if (config.init == "02") {
-				WF = WF02;
-			}
-			mvMul(U, WF, updatedWF);
-			swap(WF, updatedWF);
-		}
 	}
+	mvMul(U, WF_init, WF);
 
-	map<string, double> probs = {
-		{"00", getProbability(WF00)},
-		{"10", getProbability(WF10)},
-		{"01", getProbability(WF01)},
-		{"11", getProbability(WF11)}
-	};
-	if (config.N == 3) {
-		probs["20"] = getProbability(WF20);
-		probs["02"] = getProbability(WF02);
+	vector<double> probs(L);
+	for (int i = 0; i < L; i++) {
+		probs[i] = norm(WF[i]);
 	}
+	auto spec = spectrum;
+	spec.Probabilities = probs;
 
-	// THIS IS THE PART THAT CALCULATES FIDELITY(MAY BE WRONG)
-	// 1Q ideal gate matrices
-	double dth = PI / 2;
-	vector<complex<double>> Ypi2 = {
-		cos(dth / 2), -sin(dth / 2), 0,
-		sin(dth / 2), cos(dth / 2), 0,
-		0, 0, 1
-	};
-	vector<complex<double>> Ypi =
-		linalg::matmul(Ypi2, Ypi2, config.N, config.N, config.N, config.N, config.N, config.N);
-	// 2Q ideal gate matrices
-	vector<complex<double>>
-		Y00(L * L), Yh0(L * L), Y0h(L * L),
-		Y10(L * L), Y01(L * L), Yhh(L * L),
-		Y1h(L * L), Yh1(L * L), Y11(L * L);
-	kMul(Identity, Identity, Y00, config.N);
-	kMul(Ypi2, Identity, Yh0, config.N);
-	kMul(Identity, Ypi2, Y0h, config.N);
-	kMul(Ypi, Identity, Y10, config.N);
-	kMul(Identity, Ypi, Y01, config.N);
-	kMul(Ypi2, Ypi2, Yhh, config.N);
-	kMul(Ypi, Ypi2, Y1h, config.N);
-	kMul(Ypi2, Ypi, Yh1, config.N);
-	kMul(Ypi, Ypi, Y11, config.N);
-
-	vector<complex<double>> Uid;
-	if (config.operation == "00") Uid = Y00;
-	else if (config.operation == "01") Uid = Y01;
-	else if (config.operation == "10") Uid = Y10;
-	else if (config.operation == "11") Uid = Y11;
-	else if (config.operation == "h0") Uid = Yh0;
-	else if (config.operation == "0h") Uid = Y0h;
-	else if (config.operation == "h1") Uid = Yh1;
-	else if (config.operation == "1h") Uid = Y1h;
-	else if (config.operation == "hh") Uid = Yhh;
-
-	vector<complex<double>> conj_Uid(Uid.size());
-	ctranspose(Uid, conj_Uid, L);
-	auto M = linalg::matmul(conj_Uid, U, L, L, L, L, L, L);
-	vector<complex<double>> conj_M(Uid.size());
-	ctranspose(M, conj_M, L);
-	auto MMconj = linalg::matmul(M, conj_M, L, L, L, L, L, L);
-	double F = (abs(trace(MMconj, L)) + norm(trace(M, L))) / (config.N * config.N * (config.N * config.N + 1));
-	//cout << F << endl;
-	return FidelityResult(F, probs);
+	// fidelity calculations
+	// Ideal gate matrices
+	vector<complex<double>> Yid, Zid;
+	if (config.N == 2) {
+		Yid = { {0, 0}, {0, -1}, {0, 1}, {0, 0} };
+		Zid = { {1, 0}, {0, 0}, {0, 0}, {-1, 0} };
+	}
+	else if (config.N == 3) {
+		Yid = {
+			{0, 0}, {0, -1}, {0, 0},
+			{0, 1}, {0, 0}, {0, 0},
+			{0, 0}, {0, 0}, {0, 0}
+		};
+		Zid = {
+			{1, 0}, {0, 0}, {0, 0},
+			{0, 0}, {-1, 0}, {0, 0},
+			{0, 0}, {0, 0}, {0, 0}
+		};
+	}
+	
+	vector<complex<double>> Uid(L * L);
+	if (config.operation == "CR0") {
+		kMul(Yid, Zid, Uid, config.N);
+	}
+	
+	vector<complex<double>> conj_U(U.size());
+	ctranspose(U, conj_U, L);
+	auto conj_U_U = linalg::matmul(conj_U, U, L, L, L, L, L, L);
+	auto conj_U_Uid = linalg::matmul(conj_U, Uid, L, L, L, L, L, L);
+	double F = (abs(trace(conj_U_U, L)) + norm(trace(conj_U_Uid, L))) / (config.N * config.N * (config.N * config.N + 1));
+	return FidelityResult(F, spec);
 }
 

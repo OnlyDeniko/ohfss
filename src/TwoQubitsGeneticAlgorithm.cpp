@@ -32,7 +32,7 @@ int TwoQubitsGeneticAlgorithm::getNumberOfCycles() {
 BaseIndividual TwoQubitsGeneticAlgorithm::CreateIndividual(const std::vector<int>& sequence) {
 	auto res = _compute_fidelity(sequence);
 	
-	return BaseIndividual(sequence, res.fidelity, 0, 1, 0);
+	return BaseIndividual(sequence, res.spec.GetProbability("10"), 0, 1, 0);
 }
 
 TwoQubitsKernel::FidelityResult TwoQubitsGeneticAlgorithm::_compute_fidelity(const std::vector<int>& sequence) {
@@ -63,5 +63,5 @@ void TwoQubitsGeneticAlgorithm::MutationImpl(std::vector<int>& sequence) {
 }
 
 bool TwoQubitsGeneticAlgorithm::CheckStopCondition() {
-	return population[0].fidelity < 0.0001;
+	return 1 - population[0].fidelity < 0.0001;
 }
