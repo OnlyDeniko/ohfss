@@ -259,7 +259,7 @@ TwoQubitsKernel::Spectrum TwoQubitsKernel::GetSpectrum(vector<complex<double>>& 
 	sort(order.begin(), order.end(), [&](int lb, int rb) {
 		return Energies[lb] < Energies[rb];
 	});
-	TwoQubitsKernel::Spectrum spec(LevelsN, States, Energies);
+	Spectrum spec(LevelsN, States, Energies);
 	spec._change_order(order);
 	return spec;
 }

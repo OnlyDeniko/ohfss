@@ -44,6 +44,8 @@ private:
 		const vector<int>& seq1,
 		const vector<int>& seq2
 	);
+public:
+	TwoQubitsKernel(const TwoQubitsConstantsDescriptor& _config);
 
 	struct Spectrum {
 		vector<int> LevelsN;
@@ -78,17 +80,15 @@ private:
 			assert(0);
 		}
 	};
-	TwoQubitsKernel::Spectrum spectrum;
-	TwoQubitsKernel::Spectrum GetSpectrum(
+	Spectrum spectrum;
+	Spectrum GetSpectrum(
 		vector<complex<double>>& a1,
 		vector<complex<double>>& a2
 	);
-public:
-	TwoQubitsKernel(const TwoQubitsConstantsDescriptor& _config);
 
 	struct FidelityResult {
 		double fidelity;
-		TwoQubitsKernel::Spectrum spec;
+		Spectrum spec;
 
 		FidelityResult(double _fidelity, Spectrum _spec) :
 			fidelity(_fidelity), spec(_spec) {}
