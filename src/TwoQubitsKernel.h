@@ -62,15 +62,17 @@ public:
 		void _change_order(const vector<int>& order) {
 			vector<int> newLevels(LevelsN.size());
 			vector<string> newStates(States.size());
-			vector<double> newEnergies(Energies.size());
+			vector<double> newEnergies(Energies.size()), newProbs(Probabilities.size());
 			for (int i = 0; i < LevelsN.size(); ++i) {
 				newLevels[i] = LevelsN[order[i]];
 				newStates[i] = States[order[i]];
 				newEnergies[i] = Energies[order[i]];
+				newProbs[i] = Probabilities[order[i]];
 			}
 			LevelsN = move(newLevels);
 			States = move(newStates);
 			Energies = move(newEnergies);
+			Probabilities = move(newProbs);
 		}
 
 		double GetProbability(const string& state) {

@@ -5,12 +5,12 @@ from typing import List, Optional
 
 @dataclass
 class ResultLog:
-    cells_number: int
-    sequence: str
-    number_of_cycles: int
+    cells_number1: int
+    cells_number2: int
+    sequence1: str
+    sequence2: str
     iterations: int
     fidelity: float
-    leak: float
     execution_time: float
 
 
@@ -46,22 +46,22 @@ class Filterer:
 def read_file(filename):
     with open(filename, "r") as f:
         input = f.read()
-
     input = input.split("\n")
     for index, i in enumerate(input):
-        input[index] = i.split()
+        input[index] = i.split('\t')
+        print(input[index])
     logs = []
     for i in input:
         if len(i) != 7:
             continue
         logs.append(
             ResultLog(
-                cells_number=int(i[0]),
-                sequence=i[1],
-                number_of_cycles=int(i[2]),
-                iterations=int(i[3]),
-                fidelity=float(i[4]),
-                leak=float(i[5]),
+                cells_number1=int(i[0]),
+                cells_number2=int(i[1]),
+                sequence1=i[2],
+                sequence2=i[3],
+                iterations=int(i[4]),
+                fidelity=float(i[5]),
                 execution_time=float(i[6]),
             )
         )
@@ -87,12 +87,12 @@ def main(args):
     for file in files:
         filename_params = ResultLogFilename(file)
         logs = read_file(os.path.join(args.folder, file))
-        filtered = Filterer(
-            angle=args.angle, module=args.module, fidelityUpperBound=args.fidelity
-        ).run(logs)
-        filtered = sorted(filtered, key=lambda x: x.fidelity)
+        # filtered = Filterer(
+        #     angle=args.angle, module=args.module, fidelityUpperBound=args.fidelity
+        # ).run(logs)
+        filtered = sorted(logs, key=lambda x: x.fidelity, reverse=True)
         if len(filtered) > 0:
-            filename = f"N={int(filename_params.params['RL'])}, M={int(filename_params.params['L'])}, w01={filename_params.params['w01']}, w12={filename_params.params['w12']}, wt={filename_params.params['wt']}, angle={filename_params.params['Angle']}"
+            filename = f"N1={int(filename_params.params['N1'])}, N2={int(filename_params.params['N2'])}"
             # filename = f"{filename_params.params['w01']}"
             final_dict[filename].append(filtered[0])
             for i in range(1, len(filtered)):
@@ -101,22 +101,22 @@ def main(args):
                 final_dict[filename].append(filtered[i])
 
     for key, val in final_dict.items():
-        val = sorted(val, key=lambda x: x.cells_number)
+        val = sorted(val, key=lambda x: x.cells_number1)
         with open(key + ".txt", "w") as f:
             for log in val:
                 log: ResultLog
                 f.write(
-                    str(log.cells_number)
+                    str(log.cells_number1)
                     + "\t"
-                    + str(log.sequence)
+                    + str(log.cells_number2)
                     + "\t"
-                    + str(log.number_of_cycles)
+                    + str(log.sequence1)
+                    + "\t"
+                    + str(log.sequence2)
                     + "\t"
                     + str(log.iterations)
                     + "\t"
                     + str(log.fidelity)
-                    + "\t"
-                    + str(log.leak)
                     + "\t"
                     + str(log.execution_time)
                     + "\n"

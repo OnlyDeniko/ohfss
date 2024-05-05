@@ -75,7 +75,7 @@ protected:
 	virtual bool CheckStopCondition() = 0;
 
 public:
-	GeneticAlgorithmBase() : randomGenerator(chrono::high_resolution_clock::now().time_since_epoch().count()) {}
+	GeneticAlgorithmBase() : randomGenerator(std::chrono::high_resolution_clock::now().time_since_epoch().count()) {}
 	double run() {
 		double start = omp_get_wtime();
 		int offSpringSize = populationSize / 2;

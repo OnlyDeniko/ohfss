@@ -259,7 +259,7 @@ TwoQubitsKernel::Spectrum TwoQubitsKernel::GetSpectrum(vector<complex<double>>& 
 	sort(order.begin(), order.end(), [&](int lb, int rb) {
 		return Energies[lb] < Energies[rb];
 	});
-	Spectrum spec(LevelsN, States, Energies);
+	TwoQubitsKernel::Spectrum spec{ LevelsN, States, Energies };
 	spec._change_order(order);
 	return spec;
 }
@@ -356,14 +356,7 @@ TwoQubitsKernel::FidelityResult TwoQubitsKernel::Fidelity(const vector<int>& seq
 
 	vector<complex<double>> U(L * L);
 	fillIdentity(U, L);
-	vector<complex<double>> WF(L), updatedWF(L);
-	auto getProbability = [&](const vector<complex<double>>& eigVector) {
-		complex<double> dot_product = 0;
-		for (int j = 0; j < L; ++j) {	
-			dot_product += conj(eigVector[j]) * WF[j];
-		}
-		return norm(dot_product);
-	};
+	vector<complex<double>> WF(L);
 
 	map<pair<int, int>, vector<complex<double>>> compress2matrix;
 	for (auto& i : ComressedPulseString) {
@@ -379,12 +372,11 @@ TwoQubitsKernel::FidelityResult TwoQubitsKernel::Fidelity(const vector<int>& seq
 	mvMul(U, WF_init, WF);
 
 	vector<double> probs(L);
-	for (int i = 0; i < L; i++) {
-		probs[i] = norm(WF[i]);
-	}
 	auto spec = spectrum;
-	spec.Probabilities = probs;
-
+	for (int i = 0; i < L; i++) {
+		spec.Probabilities[i] = norm(WF[spec.LevelsN[i]]);
+	}
+	
 	// fidelity calculations
 	// Ideal gate matrices
 	vector<complex<double>> Yid, Zid;

@@ -47,12 +47,24 @@ int main() {
 
 	string init = "00"; // initial condition
 	string operation = "CR0"; // required operation (for fidelity calculation)
-	int M1 = 0, M2 = 1234;
+	int M1 = 200, M2 = 180;
 	TwoQubitsConstantsDescriptor desc(N, M1, M2, val, tstep, w1, w2, mu1, mu2, g, Cq1, Cq2,
 		Cc1, Cc2, wg1, wg2, tau, phi, waitq1, waitq2, init, operation, 3);
 
-	vector<int> seq(M1 + M2, 1);
-	
+	string seqs = "-10-1-100-1-100111-1-10-101-1-11-100101010-1-1-10010-1-10-10-1-11111-1-10011-100-10-1000-10110-11-11101-110-1-11000011110-110-101-11-10-1-1000111001-1101-100000-11-111-1-11000-11000-10111-1-100-1111-11-100-10-1-101-11110111010-1100-1110-1-1-10001-1-1-1-110-110-1-1011101-100-10-111010-10-1-10-11101100-1-1-1-1001101-1-10-1-1-1-1111-101-1-1-1-1-1-1010110-1-11-1-10-10-1-11-100-1-1-1-1-10-111-10-1-10-1-1-1-1101-11-1010-1-1-11-110001-1-1-1-1-1-101111-110-1-1-100101110-1-1-101-11-11-101-1-100-1-1-1100111-1-1-1-110-101111-1-1-1";
+	vector<int> seq;
+	for (int i = 0; i < seqs.size(); i++) {
+		if (seqs[i] == '-') {
+			i++;
+			seq.push_back(-1);
+		}
+		else if (seqs[i] == '0') {
+			seq.push_back(0);
+		}
+		else {
+			seq.push_back(1);
+		}
+	}
 	
 	TwoQubitsKernel kernel(desc);
 	kernel.Fidelity(seq);
@@ -62,8 +74,8 @@ int main() {
 	cout << "TIME ELAPSED: " << start << '\n';
 	cout.precision(20);
 	cout << "F: " << res.fidelity << '\n';
-	for (auto& i : res.probs) {
-		cout << fixed << setprecision(20) << i << '\n';
+	for (int i = 0; i < 9; i++) {
+		cout << res.spec.States[i] << '\t' << res.spec.LevelsN[i] << '\t' << res.spec.Energies[i] << '\t' << res.spec.Probabilities[i] << '\n';
 	}
 	return 0;
 }
