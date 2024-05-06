@@ -1,6 +1,7 @@
 from argparse import ArgumentParser
 from dataclasses import dataclass
 from typing import List, Optional
+import pandas as pd
 
 
 @dataclass
@@ -49,7 +50,6 @@ def read_file(filename):
     input = input.split("\n")
     for index, i in enumerate(input):
         input[index] = i.split('\t')
-        print(input[index])
     logs = []
     for i in input:
         if len(i) != 7:
@@ -84,6 +84,9 @@ def main(args):
 
     files = os.listdir(args.folder)
     final_dict = defaultdict(list)
+    N1 = []
+    N2 = []
+    vals = []
     for file in files:
         filename_params = ResultLogFilename(file)
         logs = read_file(os.path.join(args.folder, file))
@@ -95,32 +98,42 @@ def main(args):
             filename = f"N1={int(filename_params.params['N1'])}, N2={int(filename_params.params['N2'])}"
             # filename = f"{filename_params.params['w01']}"
             final_dict[filename].append(filtered[0])
+            N1.append(int(filename_params.params['N1']))
+            N2.append(int(filename_params.params['N2']))
+            vals.append(filtered[0].fidelity)
             for i in range(1, len(filtered)):
                 # if filtered[i].number_of_cycles == filtered[i - 1].number_of_cycles:
                 #     continue
                 final_dict[filename].append(filtered[i])
 
-    for key, val in final_dict.items():
-        val = sorted(val, key=lambda x: x.cells_number1)
-        with open(key + ".txt", "w") as f:
-            for log in val:
-                log: ResultLog
-                f.write(
-                    str(log.cells_number1)
-                    + "\t"
-                    + str(log.cells_number2)
-                    + "\t"
-                    + str(log.sequence1)
-                    + "\t"
-                    + str(log.sequence2)
-                    + "\t"
-                    + str(log.iterations)
-                    + "\t"
-                    + str(log.fidelity)
-                    + "\t"
-                    + str(log.execution_time)
-                    + "\n"
-                )
+    df = pd.DataFrame({
+        "N1": N1,
+        "N2": N2,
+        "Probability_10": vals
+    })
+    df.to_csv("two_qubits_10", index=False)
+
+    # for key, val in final_dict.items():
+    #     val = sorted(val, key=lambda x: x.cells_number1)
+    #     with open(key + ".txt", "w") as f:
+    #         for log in val:
+    #             log: ResultLog
+    #             f.write(
+    #                 str(log.cells_number1)
+    #                 + "\t"
+    #                 + str(log.cells_number2)
+    #                 + "\t"
+    #                 + str(log.sequence1)
+    #                 + "\t"
+    #                 + str(log.sequence2)
+    #                 + "\t"
+    #                 + str(log.iterations)
+    #                 + "\t"
+    #                 + str(log.fidelity)
+    #                 + "\t"
+    #                 + str(log.execution_time)
+    #                 + "\n"
+    #             )
 
 
 if __name__ == "__main__":
