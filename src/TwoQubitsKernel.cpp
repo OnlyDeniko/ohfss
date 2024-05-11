@@ -84,11 +84,6 @@ vector<pair<int, int>> TwoQubitsKernel::_combine_sequences(const vector<int>& se
 	int Nw = ceil(config.tau / config.tstep); // pulse width(in grs)
 	int NT1 = ceil(T1 / config.tstep) - Nw; // distance b / w pulses on Q1(in grs)
 	int NT2 = ceil(T2 / config.tstep) - Nw; // distance b / w pulses on Q2(in grs)
-	vector<int> sz(Nw, 0); // array for 0 pulse
-	vector<int> sp(Nw, 1); // array for + 1 pulse
-	vector<int> sm(Nw, -1); // array for - 1 pulse
-	vector<int> s0_1(NT1, 0); // array for distance b / w pulses on Q1
-	vector<int> s0_2(NT2, 0); // array for distance b / w pulses on Q2
 	vector<pair<int, int>> arr1, arr2;	
 
 	// phase between pulses(in grs)
@@ -369,6 +364,7 @@ TwoQubitsKernel::FidelityResult TwoQubitsKernel::Fidelity(const vector<int>& seq
 		auto UPulse = compress2matrix[ComressedPulseString[i]];
 		U = linalg::matmul(UPulse, U, L, L, L, L, L, L);
 	}
+	// linalg::print_matrix("Final U matrix", L, L, U, L);
 	mvMul(U, WF_init, WF);
 
 	vector<double> probs(L);
@@ -381,8 +377,14 @@ TwoQubitsKernel::FidelityResult TwoQubitsKernel::Fidelity(const vector<int>& seq
 	// Ideal gate matrices
 	vector<complex<double>> Yid, Zid;
 	if (config.N == 2) {
-		Yid = { {0, 0}, {0, -1}, {0, 1}, {0, 0} };
-		Zid = { {1, 0}, {0, 0}, {0, 0}, {-1, 0} };
+		Yid = { 
+			{0, 0}, {0, -1},
+			{0, 1}, {0, 0} 
+		};
+		Zid = { 
+			{1, 0}, {0, 0},
+			{0, 0}, {-1, 0}
+		};
 	}
 	else if (config.N == 3) {
 		Yid = {
@@ -401,12 +403,60 @@ TwoQubitsKernel::FidelityResult TwoQubitsKernel::Fidelity(const vector<int>& seq
 	if (config.operation == "CR0") {
 		kMul(Yid, Zid, Uid, config.N);
 	}
-	
-	vector<complex<double>> conj_U(U.size());
-	ctranspose(U, conj_U, L);
-	auto conj_U_U = linalg::matmul(conj_U, U, L, L, L, L, L, L);
-	auto conj_U_Uid = linalg::matmul(conj_U, Uid, L, L, L, L, L, L);
-	double F = (abs(trace(conj_U_U, L)) + norm(trace(conj_U_Uid, L))) / (config.N * config.N * (config.N * config.N + 1));
-	return FidelityResult(F, spec);
+	auto calculate_fidelity = [&](vector<complex<double>>& U, vector<complex<double>>& Uid){
+		vector<complex<double>> conj_U(U.size());
+		ctranspose(U, conj_U, L);
+		auto conj_U_U = linalg::matmul(conj_U, U, L, L, L, L, L, L);
+		auto conj_U_Uid = linalg::matmul(conj_U, Uid, L, L, L, L, L, L);
+		double F = (abs(trace(conj_U_U, L)) + norm(trace(conj_U_Uid, L))) / (config.N * config.N * (config.N * config.N + 1));
+		return F;
+	};
+	if (config.N == 3){
+		double F = calculate_fidelity(U, Uid);
+		return FidelityResult(F, spec, U);
+	} else if (config.N == 2){
+		double best_F = -1, best_phase = -1;
+		for(int i = 0;i < 360;++i){
+			Zid = {
+				{1, 0}, {0, 0},
+				{0, 0}, {cos(2 * PI / 360 * i), sin(2 * PI / 360 * i)}
+			};
+			kMul(Yid, Zid, Uid, config.N);
+			double F = calculate_fidelity(U, Uid);
+			if (best_F < F){
+				best_F = F;
+				best_phase = 2 * PI / 360 * i;
+			}
+		}
+		// double lb = best_phase - PI / 4, rb = best_phase + PI / 4;
+		// for(int i = 0;i < 50;++i){
+		// 	double llb = (2 * lb + rb) / 3, rrb = (lb + 2 * rb) / 3;
+		// 	Zid = {
+		// 		{1, 0}, {0, 0},
+		// 		{0, 0}, {cos(llb), sin(llb)}
+		// 	};
+		// 	kMul(Yid, Zid, Uid, config.N);
+		// 	double lF = calculate_fidelity(U, Uid);
+		// 	Zid = {
+		// 		{1, 0}, {0, 0},
+		// 		{0, 0}, {cos(rrb), sin(rrb)}
+		// 	};
+		// 	kMul(Yid, Zid, Uid, config.N);
+		// 	double rF = calculate_fidelity(U, Uid);
+		// 	if (lF > rF){
+		// 		rb = rrb;
+		// 	} else {
+		// 		lb = llb;
+		// 	}
+		// }
+		// Zid = {
+		// 	{1, 0}, {0, 0},
+		// 	{0, 0}, {cos(lb), sin(lb)}
+		// };
+		// kMul(Yid, Zid, Uid, config.N);
+		// best_F = calculate_fidelity(U, Uid);
+		return FidelityResult(best_F, spec, U);
+	}
+	assert(0);
 }
 

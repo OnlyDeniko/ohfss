@@ -86,7 +86,8 @@ def main(args):
     final_dict = defaultdict(list)
     N1 = []
     N2 = []
-    vals = []
+    times = []
+    probs = []
     for file in files:
         filename_params = ResultLogFilename(file)
         logs = read_file(os.path.join(args.folder, file))
@@ -100,7 +101,8 @@ def main(args):
             final_dict[filename].append(filtered[0])
             N1.append(int(filename_params.params['N1']))
             N2.append(int(filename_params.params['N2']))
-            vals.append(filtered[0].fidelity)
+            times.append(filtered[0].execution_time)
+            probs.append(filtered[0].fidelity)
             for i in range(1, len(filtered)):
                 # if filtered[i].number_of_cycles == filtered[i - 1].number_of_cycles:
                 #     continue
@@ -109,9 +111,15 @@ def main(args):
     df = pd.DataFrame({
         "N1": N1,
         "N2": N2,
-        "Probability_10": vals
+        "Prob_10": probs
     })
     df.to_csv("two_qubits_10", index=False)
+    df = pd.DataFrame({
+        "N1": N1,
+        "N2": N2,
+        "Time": times
+    })
+    df.to_csv("two_qubits_10_exec_time", index=False)
 
     # for key, val in final_dict.items():
     #     val = sorted(val, key=lambda x: x.cells_number1)

@@ -12,16 +12,16 @@ void Genetic(
 	int MaxIter = 500
 ) {
 	
-	int N = 3; // кол-во уровней кубита
+	int N = 2; // пїЅпїЅпїЅ-пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ
 	double val = 2 * PI * 1e9;
 	double tstep = 1e-14; // time grid step
 	// main qubit frequencies
-	double w1 = 5.0 * (2 * PI) * 1e9; // Частота внешнего управляющего поля
-	double w2 = 5.4 * (2 * PI) * 1e9; // Частота внешнего управляющего поля
+	double w1 = 5.0 * (2 * PI) * 1e9; // пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅ
+	double w2 = 5.4 * (2 * PI) * 1e9; // пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅ
 	// anharmonicities
-	double mu1 = 0.3 * (2 * PI) * 1e9; // Параметр нелинейности первого кубита
-	double mu2 = 0.2 * (2 * PI) * 1e9; // Параметр нелинейности первого кубита
-	double g = 0.02 * (2 * PI) * 1e9; // параметр взаимодействия между кубитами
+	double mu1 = 0.3 * (2 * PI) * 1e9; // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ
+	double mu2 = 0.2 * (2 * PI) * 1e9; // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ
+	double g = 0.02 * (2 * PI) * 1e9; // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ
 
 	// qubit capacities
 	double Cq1 = 1e-12;
@@ -34,7 +34,7 @@ void Genetic(
 	// pulse generation frequencies
 	double wg1 = w1;
 	double wg2 = w1 - 6e6;
-	double tau = 4e-12; // Длительность импульса
+	double tau = 4e-12; // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ
 	double phi = 0; // phase (number of grid steps paused on Q2)
 
 	// wait time after pulse
@@ -47,7 +47,7 @@ void Genetic(
 		Cc1, Cc2, wg1, wg2, tau, phi, waitq1, waitq2, init, operation, 3);
 
 	vector<vector<int>> seqs(2 * (N1 + N2));
-	uniform_int_distribution<> dist(-1, 1);
+	uniform_int_distribution<> dist(0, 1);
 	random_device rd;
 	mt19937 gen(rd());
 	for (auto& seq : seqs) {
@@ -79,7 +79,7 @@ void Genetic(
 }
 
 int main(int argc, char** argv) {
-	omp_set_num_threads(8);
+	omp_set_num_threads(4);
 	auto mp = ArgsPreprocessor::run(argc, argv);
 	Genetic(
 		int(mp["N1"]),

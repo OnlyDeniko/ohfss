@@ -91,9 +91,10 @@ public:
 	struct FidelityResult {
 		double fidelity;
 		Spectrum spec;
+		vector<complex<double>> U;
 
-		FidelityResult(double _fidelity, Spectrum _spec) :
-			fidelity(_fidelity), spec(_spec) {}
+		FidelityResult(double _fidelity, Spectrum _spec, const vector<complex<double>>& _U) :
+			fidelity(_fidelity), spec(_spec), U(_U) {}
 	};
 
 	FidelityResult Fidelity(const vector<int>& sequence);
