@@ -80,7 +80,6 @@ void Kernel::prepareUMatrices(double Theta, vector<complex<double>>& UTZero, vec
 	double V = F0 / w;
 	double Cc = Theta / (F0 * sqrt(2.0 * w01 / (h * C1)));
 	double Amp = Cc * V * sqrt(h * w01 / (2.0 * C1));
-
 	//	����� ������ � ��������� � ��� ���� �� ����� ������� �������� ������� ����������
 	int CycleSteps = floor(T / tstep + 0.5);
 	int CyclePlusMinusSteps = floor(CycleSteps * w / T + 0.5);
@@ -98,7 +97,7 @@ void Kernel::prepareUMatrices(double Theta, vector<complex<double>>& UTZero, vec
 	auto UZeroStep = linalg::getUMatrix(Id, HrZero, tstep, h, 3);
 	auto UMinusStep = linalg::getUMatrix(Id, HrMinus, tstep, h, 3);
 	auto UPlusStep = linalg::getUMatrix(Id, HrPlus, tstep, h, 3);
-
+	
 	auto UZero = linalg::matpow(UZeroStep, CyclePlusMinusSteps, 3);
 	auto UMinus = linalg::matpow(UMinusStep, CyclePlusMinusSteps, 3);
 	auto UPlus = linalg::matpow(UPlusStep, CyclePlusMinusSteps, 3);

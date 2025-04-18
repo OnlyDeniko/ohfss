@@ -9,18 +9,18 @@ void Genetic(
 	int N2 = 100,
 	double CrossoverProbability = 0.9, 
 	double MutationProbability = 0.5, 
-	int MaxIter = 500
+	int MaxIter = 10
 ) {
-	
-	int N = 2; // ���-�� ������� ������
+	int N = 20; // ���-�� ������� ������
+	int M = 3;
 	double val = 2 * PI * 1e9;
 	double tstep = 1e-14; // time grid step
 	// main qubit frequencies
-	double w1 = 5.0 * (2 * PI) * 1e9; // ������� �������� ������������ ����
-	double w2 = 5.4 * (2 * PI) * 1e9; // ������� �������� ������������ ����
+	double w1 = 5.4 * (2 * PI) * 1e9; // ������� �������� ������������ ����
+	double w2 = 5.0 * (2 * PI) * 1e9; // ������� �������� ������������ ����
 	// anharmonicities
-	double mu1 = 0.3 * (2 * PI) * 1e9; // �������� ������������ ������� ������
-	double mu2 = 0.2 * (2 * PI) * 1e9; // �������� ������������ ������� ������
+	double mu1 = 2.2 * (2 * PI) * 1e9; // �������� ������������ ������� ������
+	double mu2 = 2.3 * (2 * PI) * 1e9; // �������� ������������ ������� ������
 	double g = 0.02 * (2 * PI) * 1e9; // �������� �������������� ����� ��������
 
 	// qubit capacities
@@ -33,7 +33,7 @@ void Genetic(
 
 	// pulse generation frequencies
 	double wg1 = w1;
-	double wg2 = w1 - 6e6;
+	double wg2 = 3.140928e10;
 	double tau = 4e-12; // ������������ ��������
 	double phi = 0; // phase (number of grid steps paused on Q2)
 
@@ -42,9 +42,10 @@ void Genetic(
 	int waitq2 = 0;
 
 	string init = "00"; // initial condition
-	string operation = "CR0"; // required operation (for fidelity calculation)
-	TwoQubitsConstantsDescriptor config(N, N1, N2, val, tstep, w1, w2, mu1, mu2, g, Cq1, Cq2,
-		Cc1, Cc2, wg1, wg2, tau, phi, waitq1, waitq2, init, operation, 3);
+	double Coeffs = 1;
+	string operation = "PY"; // required operation (for fidelity calculation)
+	TwoQubitsConstantsDescriptor config(N, M, N1, N2, val, tstep, w1, w2, mu1, mu2, g, Cq1, Cq2,
+		Cc1, Cc2, wg1, wg2, tau, phi, waitq1, waitq2, init, Coeffs, operation, 3);
 
 	vector<vector<int>> seqs(2 * (N1 + N2));
 	uniform_int_distribution<> dist(0, 1);

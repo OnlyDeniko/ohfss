@@ -5,16 +5,16 @@ using namespace std;
 
 void Genetic(
 	int RegularLen = 30,
-	int CellsNumber = 120, 
+	int CellsNumber = 125, 
 	int MaxCells = 120,
-	double w01Coeff = 3,
+	double w01Coeff = 5,
 	double w12Coeff = 0.25,
 	double wtCoeff = 25,
 	double NeededAngle = 0.024,
 	double AngleUpperBound = 1e-4,
 	double CrossoverProbability = 0.8,
 	double MutationProbability = 0.8,
-	int MaxIter = 500,
+	int MaxIter = 1,
 	int Type = 3) {
 	cout << "CellsNumber = " << CellsNumber << endl;
 	cout << "MaxCells = " << MaxCells << endl;
@@ -30,7 +30,7 @@ void Genetic(
 	double w01 = w01Coeff * 2 * PI * 1e9;
 	double w12 = w01 - w12Coeff * 2 * PI * 1e9;
 	double wt = wtCoeff * 2 * PI * 1e9;
-	const double w = 4e-12;
+	const double w = 1e-12;
 	const double T = PI / wt * 2;
 	const double Theta = 0.001;
 	const double tstep = 5e-14;

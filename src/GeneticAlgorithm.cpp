@@ -4,7 +4,8 @@ GeneticAlgorithm::GeneticAlgorithm(
 	const std::vector<std::vector<int>>& _sequences, 
 	ConstantsDescriptor _config, 
 	GeneticHyperParameters _hyperParams
-) : config(_config), kernel(_config) {
+) : config(_config), kernel(_config), fout(4) {
+	for(int i = 0;i < 4;i++) fout[i].open("output_inside_genetic_" + to_string(i) + ".txt", std::ios::app);
 	hyperParams = _hyperParams;
 	populationSize = _sequences.size();
 	for (size_t i = 0; i < _sequences.size(); ++i) {
@@ -34,7 +35,7 @@ BaseIndividual GeneticAlgorithm::CreateIndividual(const std::vector<int>& sequen
 	int NumberOfCycles = -1;
 	int prefix = -1;
 
-	for (int cnt = 0; cnt <= sequence.size(); ++cnt) {
+	for (int cnt = 0; cnt <= 0; ++cnt) {
 		auto cur_seq = buildSequence(sequence, cnt);
 
 		Kernel::FidelityResult res = _compute_fidelity(cur_seq, config.neededAngle);
@@ -46,6 +47,11 @@ BaseIndividual GeneticAlgorithm::CreateIndividual(const std::vector<int>& sequen
 			prefix = cnt;
 		}
 	}
+	int cur_thread = omp_get_thread_num();
+	for (auto& i : sequence) {
+		fout[cur_thread] << i;
+	}
+	fout[cur_thread] << '\t' << fidelity << '\n';
 	return BaseIndividual(sequence, fidelity, leak, 1, prefix);
 }
 
@@ -80,12 +86,12 @@ void GeneticAlgorithm::MutationImpl(std::vector<int>& sequence) {
 }
 
 bool GeneticAlgorithm::CheckStopCondition(){
-	return 1 - population[0].fidelity < 0.0001;
+	return 1 - population[0].fidelity < 0.00001;
 }
 
 vector<int> GeneticAlgorithm::buildSequence(const vector<int>& initial, int prefix_count)
 {
-	vector<int> seq;
+	/*vector<int> seq;
 	for (int i = 0; i < prefix_count; i++) {
 		seq.push_back(initial[i]);
 	}
@@ -95,5 +101,6 @@ vector<int> GeneticAlgorithm::buildSequence(const vector<int>& initial, int pref
 	for (int i = prefix_count; i < initial.size(); i++) {
 		seq.push_back(initial[i]);
 	}
-	return seq;
+	return seq;*/
+	return initial;
 }

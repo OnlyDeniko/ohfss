@@ -23,6 +23,7 @@ public:
 private:
 	ConstantsDescriptor config;
 	Kernel kernel;
+	vector<ofstream> fout;
 
 	BaseIndividual CreateIndividual(const std::vector<int>& sequence);
 	Kernel::FidelityResult _compute_fidelity(std::vector<int>& sequence, double neededAngle);

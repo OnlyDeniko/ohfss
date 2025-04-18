@@ -25,6 +25,7 @@ public:
 struct TwoQubitsConstantsDescriptor {
 public:
 	int N = 3; // кол-во уровней кубита
+	int M = 3;
 	int N1, N2; // длины двух последовательностей
 	double val;
 	double tstep; // time grid step
@@ -55,11 +56,13 @@ public:
 	int waitq2;
 
 	std::string init; // initial condition
+	double Coeffs;
 	string operation; // required operation (for fidelity calculation)
 
 	int type; // 2 or 3
 	TwoQubitsConstantsDescriptor(
 		int _N,
+		int _M,
 		int _N1,
 		int _N2,
 		double _val,
@@ -80,14 +83,15 @@ public:
 		int _waitq1,
 		int _waitq2,
 		string _init,
+		double _coeffs,
 		string _operation,
 		int _type
 	) :
-	N(_N), N1(_N1), N2(_N2),
+	N(_N), M(_M), N1(_N1), N2(_N2),
 	val(_val), tstep(_tstep),
 	w1(_w1), w2(_w2), mu1(_mu1), mu2(_mu2),
 	g(_g), Cq1(_Cq1), Cq2(_Cq2), Cc1(_Cc1), Cc2(_Cc2),
 	wg1(_wg1), wg2(_wg2), tau(_tau), phi(_phi),
 	waitq1(_waitq1), waitq2(_waitq2),
-	init(_init), operation(_operation), type(_type) {}
+	init(_init), Coeffs(_coeffs), operation(_operation), type(_type) {}
 };

@@ -94,7 +94,7 @@ def main(args):
         # filtered = Filterer(
         #     angle=args.angle, module=args.module, fidelityUpperBound=args.fidelity
         # ).run(logs)
-        filtered = sorted(logs, key=lambda x: x.fidelity, reverse=True)
+        filtered = sorted(logs, key=lambda x: x.fidelity, reverse=False)
         if len(filtered) > 0:
             filename = f"N1={int(filename_params.params['N1'])}, N2={int(filename_params.params['N2'])}"
             # filename = f"{filename_params.params['w01']}"
@@ -107,41 +107,41 @@ def main(args):
                 # if filtered[i].number_of_cycles == filtered[i - 1].number_of_cycles:
                 #     continue
                 final_dict[filename].append(filtered[i])
-
-    df = pd.DataFrame({
-        "N1": N1,
-        "N2": N2,
-        "Prob_10": probs
-    })
-    df.to_csv("two_qubits_10", index=False)
-    df = pd.DataFrame({
-        "N1": N1,
-        "N2": N2,
-        "Time": times
-    })
-    df.to_csv("two_qubits_10_exec_time", index=False)
-
-    # for key, val in final_dict.items():
-    #     val = sorted(val, key=lambda x: x.cells_number1)
-    #     with open(key + ".txt", "w") as f:
-    #         for log in val:
-    #             log: ResultLog
-    #             f.write(
-    #                 str(log.cells_number1)
-    #                 + "\t"
-    #                 + str(log.cells_number2)
-    #                 + "\t"
-    #                 + str(log.sequence1)
-    #                 + "\t"
-    #                 + str(log.sequence2)
-    #                 + "\t"
-    #                 + str(log.iterations)
-    #                 + "\t"
-    #                 + str(log.fidelity)
-    #                 + "\t"
-    #                 + str(log.execution_time)
-    #                 + "\n"
-    #             )
+    # prefix = "12.1_bipolar_"
+    # df = pd.DataFrame({
+    #     "N1": N1,
+    #     "N2": N2,
+    #     "Prob_10": probs
+    # })
+    # df.to_csv(prefix[:-1], index=False)
+    # df = pd.DataFrame({
+    #     "N1": N1,
+    #     "N2": N2,
+    #     "Time": times
+    # })
+    # df.to_csv(prefix + "exec_time", index=False)
+    print(final_dict)
+    for key, val in final_dict.items():
+        val = sorted(val, key=lambda x: x.cells_number1)
+        with open(key + ".txt", "w") as f:
+            for log in val:
+                log: ResultLog
+                f.write(
+                    str(log.cells_number1)
+                    + "\t"
+                    + str(log.cells_number2)
+                    + "\t"
+                    + str(log.sequence1)
+                    + "\t"
+                    + str(log.sequence2)
+                    + "\t"
+                    + str(log.iterations)
+                    + "\t"
+                    + str(log.fidelity)
+                    + "\t"
+                    + str(log.execution_time)
+                    + "\n"
+                )
 
 
 if __name__ == "__main__":
