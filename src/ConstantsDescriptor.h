@@ -1,5 +1,6 @@
 #pragma once
 #include<string>
+#include<cassert>
 
 using namespace std;
 
@@ -60,6 +61,7 @@ public:
 	string operation; // required operation (for fidelity calculation)
 
 	int type; // 2 or 3
+	int SecondSequenceOnesLimit; // <= N2
 	TwoQubitsConstantsDescriptor(
 		int _N,
 		int _M,
@@ -85,7 +87,8 @@ public:
 		string _init,
 		double _coeffs,
 		string _operation,
-		int _type
+		int _type,
+		int _SecondSequenceOnesLimit
 	) :
 	N(_N), M(_M), N1(_N1), N2(_N2),
 	val(_val), tstep(_tstep),
@@ -93,5 +96,8 @@ public:
 	g(_g), Cq1(_Cq1), Cq2(_Cq2), Cc1(_Cc1), Cc2(_Cc2),
 	wg1(_wg1), wg2(_wg2), tau(_tau), phi(_phi),
 	waitq1(_waitq1), waitq2(_waitq2),
-	init(_init), Coeffs(_coeffs), operation(_operation), type(_type) {}
+	init(_init), Coeffs(_coeffs), operation(_operation), type(_type),
+	SecondSequenceOnesLimit(_SecondSequenceOnesLimit) {
+		assert(SecondSequenceOnesLimit <= N2);
+	}
 };

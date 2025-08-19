@@ -25,8 +25,8 @@ int main() {
 	double w1 = 5.4 * (2 * PI) * 1e9; // Частота внешнего управляющего поля
 	double w2 = 5.0 * (2 * PI) * 1e9; // Частота внешнего управляющего поля
 	// anharmonicities
-	double mu1 = 2.2 * (2 * PI) * 1e9; // Параметр нелинейности первого кубита
-	double mu2 = 2.3 * (2 * PI) * 1e9; // Параметр нелинейности первого кубита
+	double mu1 = 0.35 * (2 * PI) * 1e9; // Параметр нелинейности первого кубита
+	double mu2 = 0.25 * (2 * PI) * 1e9; // Параметр нелинейности первого кубита
 	double g = 0.02 * (2 * PI) * 1e9; // параметр взаимодействия между кубитами
 	
 	// qubit capacities
@@ -38,8 +38,8 @@ int main() {
 	double Cc2 = 1e-15;
 
 	// pulse generation frequencies
-	double wg1 = w1;
-	double wg2 = 3.140928e10;
+	double wg1 = w2;
+	double wg2 = w2;
 	double tau = 4e-12; // Длительность импульса
 	double phi = 0; // phase (number of grid steps paused on Q2)
 

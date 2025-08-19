@@ -9,7 +9,8 @@ void Genetic(
 	int N2 = 100,
 	double CrossoverProbability = 0.9, 
 	double MutationProbability = 0.5, 
-	int MaxIter = 10
+	int MaxIter = 10,
+	int SecondSequenceOnesLimit = 5
 ) {
 	int N = 20; // ���-�� ������� ������
 	int M = 3;
@@ -19,8 +20,8 @@ void Genetic(
 	double w1 = 5.4 * (2 * PI) * 1e9; // ������� �������� ������������ ����
 	double w2 = 5.0 * (2 * PI) * 1e9; // ������� �������� ������������ ����
 	// anharmonicities
-	double mu1 = 2.2 * (2 * PI) * 1e9; // �������� ������������ ������� ������
-	double mu2 = 2.3 * (2 * PI) * 1e9; // �������� ������������ ������� ������
+	double mu1 = 0.35 * (2 * PI) * 1e9; // �������� ������������ ������� ������
+	double mu2 = 0.25 * (2 * PI) * 1e9; // �������� ������������ ������� ������
 	double g = 0.02 * (2 * PI) * 1e9; // �������� �������������� ����� ��������
 
 	// qubit capacities
@@ -32,8 +33,8 @@ void Genetic(
 	double Cc2 = 1e-15;
 
 	// pulse generation frequencies
-	double wg1 = w1;
-	double wg2 = 3.140928e10;
+	double wg1 = w2;
+	double wg2 = w2;
 	double tau = 4e-12; // ������������ ��������
 	double phi = 0; // phase (number of grid steps paused on Q2)
 
@@ -45,16 +46,27 @@ void Genetic(
 	double Coeffs = 1;
 	string operation = "PY"; // required operation (for fidelity calculation)
 	TwoQubitsConstantsDescriptor config(N, M, N1, N2, val, tstep, w1, w2, mu1, mu2, g, Cq1, Cq2,
-		Cc1, Cc2, wg1, wg2, tau, phi, waitq1, waitq2, init, Coeffs, operation, 3);
+		Cc1, Cc2, wg1, wg2, tau, phi, waitq1, waitq2, init, Coeffs, operation, 2, SecondSequenceOnesLimit);
 
 	vector<vector<int>> seqs(2 * (N1 + N2));
 	uniform_int_distribution<> dist(0, 1);
+	uniform_int_distribution<> dist_ones_count(0, SecondSequenceOnesLimit);
+	uniform_int_distribution<> dist_ones_positions(0, N2);
 	random_device rd;
 	mt19937 gen(rd());
 	for (auto& seq : seqs) {
-		seq.resize(N1 + N2);
-		for (auto& j : seq) {
-			j = dist(gen);
+		for (int i = 0; i < N1; ++i) seq.push_back(dist(gen));
+		vector<int> second_sequence(N2, 0);
+		auto ones_count = dist_ones_count(gen);
+		set<int> ones_positions;
+		while (ones_positions.size() < ones_count) {
+			ones_positions.insert(dist_ones_positions(gen));
+		}
+		for (auto& j : ones_positions) {
+			second_sequence[j] = 1;
+		}
+		for (auto& i : second_sequence) {
+			seq.push_back(i);
 		}
 	}
 	GeneticHyperParameters hyperParams(CrossoverProbability, MutationProbability, MaxIter);
@@ -84,7 +96,11 @@ int main(int argc, char** argv) {
 	auto mp = ArgsPreprocessor::run(argc, argv);
 	Genetic(
 		int(mp["N1"]),
-		int(mp["N2"])
+		int(mp["N2"]),
+		mp["cp"],
+		mp["mp"],
+		int(mp["max_iter"]),
+		int(mp["ones_limit"])
 	);
 	return 0;
 }

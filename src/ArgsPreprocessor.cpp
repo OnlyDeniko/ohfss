@@ -4,7 +4,11 @@ std::map<std::string, double> ArgsPreprocessor::run(int argc, char** argv) {
 	std::map<std::string, double> mp = {
 		{"N1", 100},
 		{"N2", 100},
-		{"type", 3}
+		{"type", 2},
+		{"cp", 0.9},
+		{"mp", 0.5},
+		{"max_iter", 500},
+		{"ones_limit", 10},
 	};
 	for (int i = 1; i < argc; i += 2) {
 		std::string name = argv[i];
